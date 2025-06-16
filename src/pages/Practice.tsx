@@ -10,73 +10,90 @@ import {
   Pause, 
   SkipForward, 
   Clock, 
-  Mic, 
-  MicOff,
   CheckCircle,
-  AlertCircle,
   Target,
-  RefreshCw
+  RefreshCw,
+  Settings
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useInterviewSession } from "@/hooks/useInterviewSession";
+import { useProgress } from "@/hooks/useProgress";
+import RecordingComponent from "@/components/interview/RecordingComponent";
+import { Link } from "react-router-dom";
 
 const Practice = () => {
-  const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answer, setAnswer] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
-  const [feedback, setFeedback] = useState(null);
   const [sessionTime, setSessionTime] = useState(0);
+  const [feedback, setFeedback] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
   const { toast } = useToast();
 
-  // Mock questions - in real app, these would be generated based on job description
-  const questions = [
-    {
-      id: 1,
-      question: "Tell me about yourself and your background.",
-      category: "General",
-      expectedStructure: "STAR",
-      tips: "Focus on relevant experience and skills that align with the role."
-    },
-    {
-      id: 2,
-      question: "Describe a challenging project you worked on. How did you handle it?",
-      category: "Behavioral",
-      expectedStructure: "STAR",
-      tips: "Use the STAR method: Situation, Task, Action, Result."
-    },
-    {
-      id: 3,
-      question: "What are your greatest strengths and how do they apply to this role?",
-      category: "General",
-      expectedStructure: "Examples",
-      tips: "Provide specific examples that demonstrate your strengths in action."
-    },
-    {
-      id: 4,
-      question: "Where do you see yourself in 5 years?",
-      category: "Career Goals",
-      expectedStructure: "Vision",
-      tips: "Show ambition while staying relevant to the role and company."
-    }
-  ];
+  const {
+    currentSession,
+    questions,
+    currentQuestionIndex,
+    isLoading,
+    createSession,
+    startSession,
+    submitAnswer,
+    completeSession,
+    nextQuestion,
+    previousQuestion,
+    getCurrentQuestion,
+    getProgress
+  } = useInterviewSession();
+
+  const { updateSkillProgress } = useProgress();
 
   // Timer effect
   useEffect(() => {
-    const timer = setInterval(() => {
-      setSessionTime(prev => prev + 1);
-    }, 1000);
-
+    let timer: NodeJS.Timeout;
+    if (currentSession?.status === 'in_progress') {
+      timer = setInterval(() => {
+        setSessionTime(prev => prev + 1);
+      }, 1000);
+    }
     return () => clearInterval(timer);
-  }, []);
+  }, [currentSession?.status]);
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  useEffect(() => {
+    // Auto-create a practice session if none exists
+    if (!currentSession && !isLoading && !hasSession) {
+      handleCreateSession();
+    }
+  }, [currentSession, isLoading, hasSession]);
+
+  const handleCreateSession = async () => {
+    try {
+      setHasSession(true);
+      await createSession({
+        type: 'practice',
+        title: 'Practice Session',
+        duration: 30,
+        role: 'Software Engineer',
+        industry: 'Technology',
+        experienceLevel: 'mid',
+        difficulty: 'medium'
+      });
+    } catch (error) {
+      setHasSession(false);
+      console.error('Failed to create session:', error);
+    }
+  };
+
+  const handleStartSession = async () => {
+    if (!currentSession) return;
+    try {
+      await startSession(currentSession.id);
+    } catch (error) {
+      console.error('Failed to start session:', error);
+    }
   };
 
   const handleAnswerSubmit = async () => {
-    if (!answer.trim()) {
+    const currentQuestion = getCurrentQuestion();
+    if (!currentQuestion || !answer.trim()) {
       toast({
         title: "Error",
         description: "Please provide an answer before submitting",
@@ -87,89 +104,136 @@ const Practice = () => {
 
     setIsAnalyzing(true);
     
-    // Simulate AI analysis
-    setTimeout(() => {
-      const mockFeedback = generateMockFeedback(answer, questions[currentQuestion]);
-      setFeedback(mockFeedback);
-      setIsAnalyzing(false);
-      
-      toast({
-        title: "Answer Analyzed",
-        description: "Feedback is ready!"
-      });
-    }, 2000);
-  };
-
-  const generateMockFeedback = (answer, question) => {
-    const score = Math.floor(Math.random() * 30) + 70; // 70-100
-    const hasSTAR = answer.toLowerCase().includes('situation') || 
-                   answer.toLowerCase().includes('task') ||
-                   answer.toLowerCase().includes('action') ||
-                   answer.toLowerCase().includes('result');
-    
-    return {
-      score,
-      starCompliance: hasSTAR ? 85 : 45,
-      confidence: Math.floor(Math.random() * 20) + 75,
-      clarity: Math.floor(Math.random() * 15) + 80,
-      strengths: [
-        "Good structure and flow",
-        "Relevant examples provided",
-        "Clear communication"
-      ],
-      improvements: [
-        "Could include more specific metrics",
-        "Consider using the STAR method more explicitly",
-        "Expand on the impact of your actions"
-      ],
-      suggestions: [
-        "Try to quantify your achievements with numbers",
-        "Include the outcome or result of your actions",
-        "Practice speaking with more confidence"
-      ]
-    };
-  };
-
-  const nextQuestion = () => {
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(prev => prev + 1);
-      setAnswer("");
-      setFeedback(null);
-    }
-  };
-
-  const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setIsRecording(true);
-      toast({
-        title: "Recording Started",
-        description: "Speak your answer now"
-      });
+      const feedbackResult = await submitAnswer(
+        currentQuestion.id,
+        answer,
+        Math.floor(Math.random() * 180) + 60 // Mock time taken
+      );
       
-      // In a real app, you would implement actual speech recognition here
-      setTimeout(() => {
-        setIsRecording(false);
-        setAnswer("This is a mock transcription of your spoken answer. In the real app, this would be actual speech-to-text conversion.");
-        toast({
-          title: "Recording Stopped",
-          description: "Your answer has been transcribed"
-        });
-      }, 5000);
+      setFeedback(feedbackResult);
+      
+      // Update progress tracking
+      await updateSkillProgress(currentQuestion.category, feedbackResult.score);
+      
     } catch (error) {
+      console.error('Error submitting answer:', error);
       toast({
         title: "Error",
-        description: "Could not access microphone",
+        description: "Failed to analyze answer. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
-  const stopRecording = () => {
-    setIsRecording(false);
+  const handleRecordingComplete = (result) => {
+    setAnswer(result.transcript);
+    toast({
+      title: "Recording Transcribed",
+      description: "Your speech has been converted to text"
+    });
   };
 
-  const progress = ((currentQuestion + 1) / questions.length) * 100;
+  const handleNextQuestion = () => {
+    nextQuestion();
+    setAnswer("");
+    setFeedback(null);
+  };
+
+  const handleFinishSession = async () => {
+    try {
+      const finalScore = await completeSession();
+      toast({
+        title: "Session Completed!",
+        description: `Your final score: ${finalScore}%`
+      });
+    } catch (error) {
+      console.error('Error completing session:', error);
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const currentQuestion = getCurrentQuestion();
+  const progress = getProgress();
+
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Setting up your practice session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentSession) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-4">Practice Mode</h1>
+          <p className="text-muted-foreground mb-8">
+            Configure your session to get started with AI-powered interview practice
+          </p>
+          <Link to="/setup">
+            <Button size="lg">
+              <Settings className="h-4 w-4 mr-2" />
+              Configure Session
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentSession.status === 'setup') {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-4">Practice Session Ready</h1>
+          <p className="text-muted-foreground mb-8">
+            Your practice session has been configured with {questions.length} questions
+          </p>
+          <Button onClick={handleStartSession} size="lg">
+            <Play className="h-4 w-4 mr-2" />
+            Start Practice Session
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentSession.status === 'completed') {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="text-center">
+          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+          <h1 className="text-3xl font-bold mb-2">Practice Session Completed!</h1>
+          <p className="text-muted-foreground mb-8">
+            Overall Score: {currentSession.overall_score}%
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button onClick={handleCreateSession}>
+              <Target className="h-4 w-4 mr-2" />
+              Start New Session
+            </Button>
+            <Link to="/history">
+              <Button variant="outline">
+                View History
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -178,7 +242,7 @@ const Practice = () => {
         <div>
           <h1 className="text-3xl font-bold">Practice Mode</h1>
           <p className="text-muted-foreground">
-            Question {currentQuestion + 1} of {questions.length}
+            Question {currentQuestionIndex + 1} of {questions.length}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -191,32 +255,36 @@ const Practice = () => {
       </div>
 
       {/* Current Question */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Interview Question</CardTitle>
-            <Badge variant="outline">{questions[currentQuestion].category}</Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-lg font-medium">
-            {questions[currentQuestion].question}
-          </div>
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <div className="text-sm font-medium mb-2">💡 Tips:</div>
-            <div className="text-sm text-muted-foreground">
-              {questions[currentQuestion].tips}
+      {currentQuestion && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Interview Question</CardTitle>
+              <Badge variant="outline">{currentQuestion.category}</Badge>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-lg font-medium">
+              {currentQuestion.question}
+            </div>
+            {currentQuestion.tips && (
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <div className="text-sm font-medium mb-2">💡 Tips:</div>
+                <div className="text-sm text-muted-foreground">
+                  {currentQuestion.tips}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Answer Input */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Your Answer
-            {questions[currentQuestion].expectedStructure === "STAR" && (
+            {currentQuestion?.expected_structure === "STAR" && (
               <Badge variant="secondary">STAR Method Recommended</Badge>
             )}
           </CardTitle>
@@ -227,25 +295,14 @@ const Practice = () => {
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             rows={6}
-            disabled={isRecording}
           />
           
+          <RecordingComponent onRecordingComplete={handleRecordingComplete} />
+          
           <div className="flex gap-2">
-            {!isRecording ? (
-              <Button onClick={startRecording} variant="outline">
-                <Mic className="h-4 w-4 mr-2" />
-                Start Recording
-              </Button>
-            ) : (
-              <Button onClick={stopRecording} variant="destructive">
-                <MicOff className="h-4 w-4 mr-2" />
-                Stop Recording
-              </Button>
-            )}
-            
             <Button 
               onClick={handleAnswerSubmit}
-              disabled={!answer.trim() || isAnalyzing || isRecording}
+              disabled={!answer.trim() || isAnalyzing}
               className="ml-auto"
             >
               {isAnalyzing ? (
@@ -335,14 +392,14 @@ const Practice = () => {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Try Again
               </Button>
-              {currentQuestion < questions.length - 1 && (
-                <Button onClick={nextQuestion}>
+              {currentQuestionIndex < questions.length - 1 && (
+                <Button onClick={handleNextQuestion}>
                   <SkipForward className="h-4 w-4 mr-2" />
                   Next Question
                 </Button>
               )}
-              {currentQuestion === questions.length - 1 && (
-                <Button className="ml-auto">
+              {currentQuestionIndex === questions.length - 1 && (
+                <Button onClick={handleFinishSession} className="ml-auto">
                   Finish Session
                 </Button>
               )}

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Upload, FileText, Brain, Settings, Target } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { aiService } from "@/services/aiService";
+import AIConfig from "@/components/setup/AIConfig";
 
 const Setup = () => {
   const [jobDescription, setJobDescription] = useState("");
@@ -37,14 +38,36 @@ const Setup = () => {
 
     setIsAnalyzing(true);
     
-    // Simulate AI analysis (in real app, this would call your LLM service)
-    setTimeout(() => {
+    try {
+      const analysis = await aiService.analyzeJobDescription(jobDescription);
+      
+      setAnalysisResult(analysis);
+      setInterviewConfig(prev => ({
+        ...prev,
+        role: analysis.role,
+        industry: analysis.industry,
+        experience: analysis.experienceLevel
+      }));
+      
+      toast({
+        title: "Analysis Complete",
+        description: "Job description analyzed successfully!"
+      });
+    } catch (error) {
+      console.error('Analysis error:', error);
+      toast({
+        title: "Analysis Failed", 
+        description: "Using mock analysis. Configure AI for better results.",
+        variant: "destructive"
+      });
+      
+      // Fallback to mock analysis
       const mockAnalysis = {
         role: extractRole(jobDescription),
         industry: extractIndustry(jobDescription),
         skills: extractSkills(jobDescription),
         requirements: extractRequirements(jobDescription),
-        experience: extractExperience(jobDescription)
+        experienceLevel: extractExperience(jobDescription)
       };
       
       setAnalysisResult(mockAnalysis);
@@ -52,15 +75,11 @@ const Setup = () => {
         ...prev,
         role: mockAnalysis.role,
         industry: mockAnalysis.industry,
-        experience: mockAnalysis.experience
+        experience: mockAnalysis.experienceLevel
       }));
+    } finally {
       setIsAnalyzing(false);
-      
-      toast({
-        title: "Analysis Complete",
-        description: "Job description analyzed successfully!"
-      });
-    }, 2000);
+    }
   };
 
   // Mock extraction functions (in real app, these would use LLM)
@@ -98,9 +117,12 @@ const Setup = () => {
       <div>
         <h1 className="text-3xl font-bold mb-2">Interview Setup</h1>
         <p className="text-muted-foreground">
-          Configure your interview session with job description analysis or manual setup
+          Configure your interview session with AI-powered job description analysis
         </p>
       </div>
+
+      {/* AI Configuration */}
+      <AIConfig />
 
       {/* Job Description Upload */}
       <Card>

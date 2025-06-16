@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,53 +13,102 @@ import {
   Settings, 
   Target, 
   Book,
-  Bell,
   Download,
   Trash,
   Save
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useProfile } from "@/hooks/useProfile";
+import { useProgress } from "@/hooks/useProgress";
 
 const Profile = () => {
   const { toast } = useToast();
+  const { profile, updateProfile, loading } = useProfile();
+  const { skillProgress, overallStats } = useProgress();
   
-  const [profile, setProfile] = useState({
-    name: "Guest User",
-    email: "",
-    bio: "",
-    currentRole: "",
-    targetRole: "",
-    experience: "mid",
-    industry: "technology",
+  const [profileData, setProfileData] = useState({
+    full_name: "",
+    current_role: "",
+    target_role: "",
+    experience_level: "mid" as 'entry' | 'mid' | 'senior',
+    industry: "",
     location: "",
-    preferences: {
-      notifications: true,
-      emailUpdates: false,
-      practiceReminders: true,
-      weeklyReports: true
+    bio: "",
+    weekly_practice_goal: 3,
+    target_score: 85,
+    focus_areas: [] as string[],
+    target_companies: [] as string[]
+  });
+
+  const [preferences, setPreferences] = useState({
+    notifications: true,
+    emailUpdates: false,
+    practiceReminders: true,
+    weeklyReports: true
+  });
+
+  useEffect(() => {
+    if (profile) {
+      setProfileData({
+        full_name: profile.full_name || "",
+        current_role: profile.current_role || "",
+        target_role: profile.target_role || "",
+        experience_level: profile.experience_level || "mid",
+        industry: profile.industry || "",
+        location: profile.location || "",
+        bio: profile.bio || "",
+        weekly_practice_goal: profile.weekly_practice_goal || 3,
+        target_score: profile.target_score || 85,
+        focus_areas: profile.focus_areas || [],
+        target_companies: profile.target_companies || []
+      });
     }
-  });
+  }, [profile]);
 
-  const [goals, setGoals] = useState({
-    weeklyPracticeHours: 3,
-    targetScore: 85,
-    focusAreas: ["Communication", "STAR Method"],
-    targetCompanies: ["Tech Corp", "Innovation Labs"]
-  });
-
-  const handleSave = () => {
-    // In a real app, this would save to your backend
-    toast({
-      title: "Profile Updated",
-      description: "Your profile has been saved successfully."
-    });
+  const handleSave = async () => {
+    try {
+      await updateProfile({
+        ...profileData,
+        updated_at: new Date().toISOString()
+      });
+      
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been saved successfully."
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleExportData = () => {
-    // In a real app, this would export user data
+    const dataToExport = {
+      profile: profileData,
+      skillProgress,
+      overallStats,
+      exportDate: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {
+      type: 'application/json'
+    });
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `prepmaster-data-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
     toast({
-      title: "Data Export",
-      description: "Your data export will be emailed to you shortly."
+      title: "Data Exported",
+      description: "Your data has been downloaded successfully."
     });
   };
 
@@ -74,6 +123,17 @@ const Profile = () => {
     "System Design"
   ];
 
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
@@ -82,6 +142,35 @@ const Profile = () => {
           Manage your profile, preferences, and interview preparation goals
         </p>
       </div>
+
+      {/* Statistics Overview */}
+      {overallStats && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Progress Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{overallStats.totalSessions}</div>
+                <div className="text-sm text-muted-foreground">Sessions Completed</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{overallStats.averageScore}%</div>
+                <div className="text-sm text-muted-foreground">Average Score</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">{overallStats.hoursSpent}h</div>
+                <div className="text-sm text-muted-foreground">Hours Practiced</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">{overallStats.streakDays}</div>
+                <div className="text-sm text-muted-foreground">Day Streak</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Personal Information */}
       <Card>
@@ -100,19 +189,18 @@ const Profile = () => {
               <Label htmlFor="name">Full Name</Label>
               <Input
                 id="name"
-                value={profile.name}
-                onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
+                value={profileData.full_name}
+                onChange={(e) => setProfileData(prev => ({ ...prev, full_name: e.target.value }))}
                 placeholder="Enter your full name"
               />
             </div>
             <div>
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="location">Location</Label>
               <Input
-                id="email"
-                type="email"
-                value={profile.email}
-                onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="Enter your email"
+                id="location"
+                value={profileData.location}
+                onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
+                placeholder="e.g., San Francisco, CA"
               />
             </div>
           </div>
@@ -121,8 +209,8 @@ const Profile = () => {
             <Label htmlFor="bio">Professional Bio</Label>
             <Textarea
               id="bio"
-              value={profile.bio}
-              onChange={(e) => setProfile(prev => ({ ...prev, bio: e.target.value }))}
+              value={profileData.bio}
+              onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
               placeholder="Tell us about your professional background..."
               rows={3}
             />
@@ -133,8 +221,8 @@ const Profile = () => {
               <Label htmlFor="current-role">Current Role</Label>
               <Input
                 id="current-role"
-                value={profile.currentRole}
-                onChange={(e) => setProfile(prev => ({ ...prev, currentRole: e.target.value }))}
+                value={profileData.current_role}
+                onChange={(e) => setProfileData(prev => ({ ...prev, current_role: e.target.value }))}
                 placeholder="e.g., Software Engineer"
               />
             </div>
@@ -142,19 +230,19 @@ const Profile = () => {
               <Label htmlFor="target-role">Target Role</Label>
               <Input
                 id="target-role"
-                value={profile.targetRole}
-                onChange={(e) => setProfile(prev => ({ ...prev, targetRole: e.target.value }))}
+                value={profileData.target_role}
+                onChange={(e) => setProfileData(prev => ({ ...prev, target_role: e.target.value }))}
                 placeholder="e.g., Senior Software Engineer"
               />
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="experience">Experience Level</Label>
               <Select 
-                value={profile.experience} 
-                onValueChange={(value) => setProfile(prev => ({ ...prev, experience: value }))}
+                value={profileData.experience_level} 
+                onValueChange={(value: 'entry' | 'mid' | 'senior') => setProfileData(prev => ({ ...prev, experience_level: value }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -169,11 +257,11 @@ const Profile = () => {
             <div>
               <Label htmlFor="industry">Industry</Label>
               <Select 
-                value={profile.industry} 
-                onValueChange={(value) => setProfile(prev => ({ ...prev, industry: value }))}
+                value={profileData.industry} 
+                onValueChange={(value) => setProfileData(prev => ({ ...prev, industry: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select industry" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="technology">Technology</SelectItem>
@@ -183,15 +271,6 @@ const Profile = () => {
                   <SelectItem value="retail">Retail</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={profile.location}
-                onChange={(e) => setProfile(prev => ({ ...prev, location: e.target.value }))}
-                placeholder="e.g., San Francisco, CA"
-              />
             </div>
           </div>
         </CardContent>
@@ -211,10 +290,10 @@ const Profile = () => {
         <CardContent className="space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="weekly-hours">Weekly Practice Hours</Label>
+              <Label htmlFor="weekly-hours">Weekly Practice Goal (hours)</Label>
               <Select 
-                value={goals.weeklyPracticeHours.toString()} 
-                onValueChange={(value) => setGoals(prev => ({ ...prev, weeklyPracticeHours: parseInt(value) }))}
+                value={profileData.weekly_practice_goal.toString()} 
+                onValueChange={(value) => setProfileData(prev => ({ ...prev, weekly_practice_goal: parseInt(value) }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -231,8 +310,8 @@ const Profile = () => {
             <div>
               <Label htmlFor="target-score">Target Average Score</Label>
               <Select 
-                value={goals.targetScore.toString()} 
-                onValueChange={(value) => setGoals(prev => ({ ...prev, targetScore: parseInt(value) }))}
+                value={profileData.target_score.toString()} 
+                onValueChange={(value) => setProfileData(prev => ({ ...prev, target_score: parseInt(value) }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -255,14 +334,14 @@ const Profile = () => {
               {skillAreas.map((skill) => (
                 <Badge
                   key={skill}
-                  variant={goals.focusAreas.includes(skill) ? "default" : "outline"}
+                  variant={profileData.focus_areas.includes(skill) ? "default" : "outline"}
                   className="cursor-pointer"
                   onClick={() => {
-                    setGoals(prev => ({
+                    setProfileData(prev => ({
                       ...prev,
-                      focusAreas: prev.focusAreas.includes(skill)
-                        ? prev.focusAreas.filter(s => s !== skill)
-                        : [...prev.focusAreas, skill]
+                      focus_areas: prev.focus_areas.includes(skill)
+                        ? prev.focus_areas.filter(s => s !== skill)
+                        : [...prev.focus_areas, skill]
                     }));
                   }}
                 >
@@ -279,10 +358,10 @@ const Profile = () => {
             <Label htmlFor="target-companies">Target Companies</Label>
             <Textarea
               id="target-companies"
-              value={goals.targetCompanies.join(", ")}
-              onChange={(e) => setGoals(prev => ({ 
+              value={profileData.target_companies.join(", ")}
+              onChange={(e) => setProfileData(prev => ({ 
                 ...prev, 
-                targetCompanies: e.target.value.split(",").map(c => c.trim()).filter(c => c)
+                target_companies: e.target.value.split(",").map(c => c.trim()).filter(c => c)
               }))}
               placeholder="Enter company names separated by commas..."
               rows={2}
@@ -311,29 +390,9 @@ const Profile = () => {
               </div>
               <Switch
                 id="notifications"
-                checked={profile.preferences.notifications}
+                checked={preferences.notifications}
                 onCheckedChange={(checked) => 
-                  setProfile(prev => ({
-                    ...prev,
-                    preferences: { ...prev.preferences, notifications: checked }
-                  }))
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="email-updates">Email Updates</Label>
-                <p className="text-sm text-muted-foreground">Receive product updates via email</p>
-              </div>
-              <Switch
-                id="email-updates"
-                checked={profile.preferences.emailUpdates}
-                onCheckedChange={(checked) => 
-                  setProfile(prev => ({
-                    ...prev,
-                    preferences: { ...prev.preferences, emailUpdates: checked }
-                  }))
+                  setPreferences(prev => ({ ...prev, notifications: checked }))
                 }
               />
             </div>
@@ -345,12 +404,9 @@ const Profile = () => {
               </div>
               <Switch
                 id="practice-reminders"
-                checked={profile.preferences.practiceReminders}
+                checked={preferences.practiceReminders}
                 onCheckedChange={(checked) => 
-                  setProfile(prev => ({
-                    ...prev,
-                    preferences: { ...prev.preferences, practiceReminders: checked }
-                  }))
+                  setPreferences(prev => ({ ...prev, practiceReminders: checked }))
                 }
               />
             </div>
@@ -362,12 +418,9 @@ const Profile = () => {
               </div>
               <Switch
                 id="weekly-reports"
-                checked={profile.preferences.weeklyReports}
+                checked={preferences.weeklyReports}
                 onCheckedChange={(checked) => 
-                  setProfile(prev => ({
-                    ...prev,
-                    preferences: { ...prev.preferences, weeklyReports: checked }
-                  }))
+                  setPreferences(prev => ({ ...prev, weeklyReports: checked }))
                 }
               />
             </div>
