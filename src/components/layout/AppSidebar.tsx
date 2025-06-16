@@ -7,8 +7,10 @@ import {
   BarChart3,
   User,
   Settings,
-  Brain,
-  Target
+  Target,
+  TrendingUp,
+  Trophy,
+  Briefcase
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -27,37 +29,37 @@ import {
 
 const menuItems = [
   {
-    title: "Dashboard",
+    title: "Career Command Center",
     url: "/dashboard",
     icon: Home,
   },
   {
-    title: "Interview Setup",
+    title: "Job Target Setup",
     url: "/setup",
     icon: Settings,
   },
   {
-    title: "Practice Mode",
+    title: "Skill Builder",
     url: "/practice",
     icon: Play,
   },
   {
-    title: "Mock Interview",
+    title: "Interview Simulator",
     url: "/mock",
     icon: Target,
   },
   {
-    title: "History",
+    title: "Achievement Archive",
     url: "/history",
     icon: Calendar,
   },
   {
-    title: "Analytics",
+    title: "Performance Insights",
     url: "/analytics",
     icon: BarChart3,
   },
   {
-    title: "Profile",
+    title: "Career Profile",
     url: "/profile",
     icon: User,
   },
@@ -67,16 +69,22 @@ export function AppSidebar() {
   const location = useLocation();
 
   return (
-    <Sidebar>
-      <SidebarHeader className="p-4">
-        <div className="flex items-center space-x-2">
-          <Brain className="h-6 w-6 text-primary" />
-          <span className="font-bold text-lg">InterviewAI</span>
+    <Sidebar className="border-r border-blue-100">
+      <SidebarHeader className="p-6 border-b border-blue-100">
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <Target className="h-8 w-8 text-blue-600" />
+            <TrendingUp className="h-4 w-4 text-amber-500 absolute -top-1 -right-1" />
+          </div>
+          <div>
+            <span className="font-bold text-xl text-blue-900">PrepMaster Pro</span>
+            <p className="text-xs text-muted-foreground">Career Success Platform</p>
+          </div>
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="bg-gradient-to-b from-blue-50/50 to-transparent">
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-blue-700 font-semibold">Career Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
@@ -84,9 +92,10 @@ export function AppSidebar() {
                   <SidebarMenuButton 
                     asChild
                     isActive={location.pathname === item.url}
+                    className="hover:bg-blue-50 data-[active=true]:bg-blue-100 data-[active=true]:text-blue-800"
                   >
                     <Link to={item.url}>
-                      <item.icon />
+                      <item.icon className="text-blue-600" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -96,9 +105,12 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4">
-        <div className="text-xs text-muted-foreground">
-          AI-Powered Interview Prep
+      <SidebarFooter className="p-6 border-t border-blue-100">
+        <div className="flex items-center space-x-2">
+          <Trophy className="h-4 w-4 text-amber-500" />
+          <div className="text-xs text-blue-700 font-medium">
+            AI-Powered Career Success
+          </div>
         </div>
       </SidebarFooter>
     </Sidebar>
