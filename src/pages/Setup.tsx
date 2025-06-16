@@ -11,17 +11,18 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { aiService } from "@/services/aiService";
 import AIConfig from "@/components/setup/AIConfig";
+import { AnalysisResult, InterviewConfig } from "@/types";
 
 const Setup = () => {
   const [jobDescription, setJobDescription] = useState("");
-  const [analysisResult, setAnalysisResult] = useState(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
 
-  const [interviewConfig, setInterviewConfig] = useState({
+  const [interviewConfig, setInterviewConfig] = useState<InterviewConfig>({
     role: "",
     industry: "",
-    experience: "",
+    experience: "mid",
     duration: "30",
     difficulty: "medium"
   });
@@ -62,7 +63,7 @@ const Setup = () => {
       });
       
       // Fallback to mock analysis
-      const mockAnalysis = {
+      const mockAnalysis: AnalysisResult = {
         role: extractRole(jobDescription),
         industry: extractIndustry(jobDescription),
         skills: extractSkills(jobDescription),
@@ -82,23 +83,23 @@ const Setup = () => {
     }
   };
 
-  // Mock extraction functions (in real app, these would use LLM)
-  const extractRole = (jd) => {
+  // Mock extraction functions with proper TypeScript types
+  const extractRole = (jd: string): string => {
     const roles = ["Software Engineer", "Product Manager", "Data Scientist", "UX Designer", "Marketing Manager"];
     return roles[Math.floor(Math.random() * roles.length)];
   };
 
-  const extractIndustry = (jd) => {
+  const extractIndustry = (jd: string): string => {
     const industries = ["Technology", "Finance", "Healthcare", "E-commerce", "Education"];
     return industries[Math.floor(Math.random() * industries.length)];
   };
 
-  const extractSkills = (jd) => {
+  const extractSkills = (jd: string): string[] => {
     const allSkills = ["JavaScript", "React", "Python", "SQL", "Communication", "Leadership", "Problem Solving", "Analytics"];
     return allSkills.slice(0, Math.floor(Math.random() * 4) + 3);
   };
 
-  const extractRequirements = (jd) => {
+  const extractRequirements = (jd: string): string[] => {
     return [
       "Bachelor's degree in relevant field",
       "3+ years of experience",
@@ -107,8 +108,8 @@ const Setup = () => {
     ];
   };
 
-  const extractExperience = (jd) => {
-    const levels = ["entry", "mid", "senior"];
+  const extractExperience = (jd: string): AnalysisResult['experienceLevel'] => {
+    const levels: AnalysisResult['experienceLevel'][] = ["entry", "mid", "senior"];
     return levels[Math.floor(Math.random() * levels.length)];
   };
 
@@ -121,10 +122,8 @@ const Setup = () => {
         </p>
       </div>
 
-      {/* AI Configuration */}
       <AIConfig />
 
-      {/* Job Description Upload */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -167,7 +166,6 @@ const Setup = () => {
         </CardContent>
       </Card>
 
-      {/* Analysis Results */}
       {analysisResult && (
         <Card>
           <CardHeader>
@@ -215,7 +213,6 @@ const Setup = () => {
         </Card>
       )}
 
-      {/* Interview Configuration */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -263,7 +260,7 @@ const Setup = () => {
               <Label htmlFor="experience">Experience Level</Label>
               <Select 
                 value={interviewConfig.experience} 
-                onValueChange={(value) => setInterviewConfig(prev => ({ ...prev, experience: value }))}
+                onValueChange={(value: InterviewConfig['experience']) => setInterviewConfig(prev => ({ ...prev, experience: value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select level" />
@@ -279,7 +276,7 @@ const Setup = () => {
               <Label htmlFor="duration">Duration (minutes)</Label>
               <Select 
                 value={interviewConfig.duration} 
-                onValueChange={(value) => setInterviewConfig(prev => ({ ...prev, duration: value }))}
+                onValueChange={(value: InterviewConfig['duration']) => setInterviewConfig(prev => ({ ...prev, duration: value }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -296,7 +293,7 @@ const Setup = () => {
               <Label htmlFor="difficulty">Difficulty</Label>
               <Select 
                 value={interviewConfig.difficulty} 
-                onValueChange={(value) => setInterviewConfig(prev => ({ ...prev, difficulty: value }))}
+                onValueChange={(value: InterviewConfig['difficulty']) => setInterviewConfig(prev => ({ ...prev, difficulty: value }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -312,7 +309,6 @@ const Setup = () => {
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
       <div className="flex gap-4">
         <Link to="/practice" className="flex-1">
           <Button className="w-full" size="lg">
