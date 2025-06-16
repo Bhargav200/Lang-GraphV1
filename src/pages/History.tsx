@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -104,20 +103,22 @@ const History = () => {
       case "score":
         return b.score - a.score;
       case "duration":
-        return parseInt(b.duration) - parseInt(a.duration);
+        const aDuration = parseInt(a.duration.replace(' min', ''));
+        const bDuration = parseInt(b.duration.replace(' min', ''));
+        return bDuration - aDuration;
       default:
-        return new Date(b.date) - new Date(a.date);
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
     }
   });
 
-  const getScoreColor = (score) => {
+  const getScoreColor = (score: number) => {
     if (score >= 90) return "text-green-600";
     if (score >= 80) return "text-blue-600";
     if (score >= 70) return "text-yellow-600";
     return "text-red-600";
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     return status === "completed" ? (
       <Badge variant="secondary" className="bg-green-100 text-green-800">
         Completed
@@ -138,7 +139,6 @@ const History = () => {
         </p>
       </div>
 
-      {/* Stats Overview */}
       <div className="grid md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
@@ -171,7 +171,7 @@ const History = () => {
               <div className="ml-2">
                 <p className="text-sm font-medium text-muted-foreground">Total Practice Time</p>
                 <p className="text-2xl font-bold">
-                  {sessions.reduce((acc, s) => acc + parseInt(s.duration), 0)} min
+                  {sessions.reduce((acc, s) => acc + parseInt(s.duration.replace(' min', '')), 0)} min
                 </p>
               </div>
             </div>
@@ -192,7 +192,6 @@ const History = () => {
         </Card>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardHeader>
           <CardTitle>Filters & Search</CardTitle>
@@ -234,7 +233,6 @@ const History = () => {
         </CardContent>
       </Card>
 
-      {/* Sessions List */}
       <div className="space-y-4">
         {sortedSessions.map((session) => (
           <Card key={session.id} className="hover:shadow-md transition-shadow">

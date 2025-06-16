@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,13 +15,22 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
+interface SessionResults {
+  totalTime: number;
+  questionsCompleted: number;
+  overallScore: number;
+  categoryScores: Record<string, number>;
+  feedback: string[];
+  recommendations: string[];
+}
+
 const Mock = () => {
   const [sessionState, setSessionState] = useState("setup"); // setup, active, completed
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(1800); // 30 minutes
   const [isPaused, setIsPaused] = useState(false);
   const [answers, setAnswers] = useState([]);
-  const [sessionResults, setSessionResults] = useState(null);
+  const [sessionResults, setSessionResults] = useState<SessionResults | null>(null);
   const { toast } = useToast();
 
   const mockQuestions = [
@@ -60,7 +68,7 @@ const Mock = () => {
 
   // Timer effect
   useEffect(() => {
-    let timer;
+    let timer: NodeJS.Timeout;
     if (sessionState === "active" && !isPaused && timeRemaining > 0) {
       timer = setInterval(() => {
         setTimeRemaining(prev => {
@@ -75,7 +83,7 @@ const Mock = () => {
     return () => clearInterval(timer);
   }, [sessionState, isPaused, timeRemaining]);
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -109,7 +117,7 @@ const Mock = () => {
     setSessionState("completed");
     
     // Generate mock results
-    const results = {
+    const results: SessionResults = {
       totalTime: 1800 - timeRemaining,
       questionsCompleted: currentQuestion + 1,
       overallScore: Math.floor(Math.random() * 20) + 75,
@@ -279,7 +287,7 @@ const Mock = () => {
     );
   }
 
-  if (sessionState === "completed") {
+  if (sessionState === "completed" && sessionResults) {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Results Header */}
@@ -326,7 +334,7 @@ const Mock = () => {
             <CardTitle>Performance Breakdown</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {Object.entries(sessionResults.categoryScores).map(([category, score]) => (
+            {Object.entries(sessionResults.categoryScores).map(([category, score]: [string, number]) => (
               <div key={category}>
                 <div className="flex justify-between text-sm mb-1">
                   <span>{category}</span>
@@ -346,7 +354,7 @@ const Mock = () => {
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {sessionResults.feedback.map((item, index) => (
+                {sessionResults.feedback.map((item: string, index: number) => (
                   <li key={index} className="text-sm">• {item}</li>
                 ))}
               </ul>
@@ -359,7 +367,7 @@ const Mock = () => {
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {sessionResults.recommendations.map((item, index) => (
+                {sessionResults.recommendations.map((item: string, index: number) => (
                   <li key={index} className="text-sm">• {item}</li>
                 ))}
               </ul>
