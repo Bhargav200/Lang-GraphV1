@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Database } from '@/lib/database.types';
 
 type ProgressData = Database['public']['Tables']['progress_tracking']['Row'];
@@ -31,13 +31,48 @@ export const useProgress = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      // Provide mock data when Supabase isn't configured
+      setSkillProgress([
+        {
+          skillArea: 'Technical Skills',
+          currentScore: 75,
+          targetScore: 90,
+          sessionsCompleted: 5,
+          improvementRate: 15,
+          lastPractice: new Date().toISOString(),
+          achievements: ['First Session Complete']
+        },
+        {
+          skillArea: 'Communication',
+          currentScore: 68,
+          targetScore: 85,
+          sessionsCompleted: 3,
+          improvementRate: 12,
+          lastPractice: new Date().toISOString(),
+          achievements: []
+        }
+      ]);
+      
+      setOverallStats({
+        totalSessions: 8,
+        averageScore: 72,
+        hoursSpent: 4,
+        streakDays: 3,
+        improvementRate: 14
+      });
+      
+      setIsLoading(false);
+      return;
+    }
+
     if (user) {
       fetchProgressData();
     }
   }, [user]);
 
   const fetchProgressData = async () => {
-    if (!user) return;
+    if (!user || !isSupabaseConfigured) return;
 
     setIsLoading(true);
     try {
@@ -207,6 +242,7 @@ export const useProgress = () => {
     isLoading,
     updateSkillProgress,
     addAchievement,
-    refetch: fetchProgressData
+    refetch: fetchProgressData,
+    isConfigured: isSupabaseConfigured
   };
 };

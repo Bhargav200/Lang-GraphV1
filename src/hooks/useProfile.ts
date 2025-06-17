@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Database } from '@/lib/database.types';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -12,6 +12,11 @@ export const useProfile = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      return;
+    }
+
     if (user) {
       fetchProfile();
     } else {
@@ -21,6 +26,12 @@ export const useProfile = () => {
   }, [user]);
 
   const fetchProfile = async () => {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -44,7 +55,7 @@ export const useProfile = () => {
   };
 
   const createProfile = async () => {
-    if (!user) return;
+    if (!user || !isSupabaseConfigured) return;
 
     try {
       const newProfile = {
@@ -68,7 +79,7 @@ export const useProfile = () => {
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
-    if (!user) return;
+    if (!user || !isSupabaseConfigured) return;
 
     try {
       const { data, error } = await supabase
@@ -92,5 +103,6 @@ export const useProfile = () => {
     loading,
     updateProfile,
     refetch: fetchProfile,
+    isConfigured: isSupabaseConfigured,
   };
 };

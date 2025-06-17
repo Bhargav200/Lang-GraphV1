@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Database } from '@/lib/database.types';
 import { aiService } from '@/services/aiService';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +29,15 @@ export const useInterviewSession = () => {
 
   const createSession = async (config: SessionConfig): Promise<Session> => {
     if (!user) throw new Error('User not authenticated');
+    
+    if (!isSupabaseConfigured) {
+      toast({
+        title: "Supabase Not Connected",
+        description: "Please connect to Supabase to create interview sessions.",
+        variant: "destructive"
+      });
+      throw new Error('Supabase not configured');
+    }
 
     setIsLoading(true);
     try {
@@ -261,6 +269,7 @@ export const useInterviewSession = () => {
     nextQuestion,
     previousQuestion,
     getCurrentQuestion,
-    getProgress
+    getProgress,
+    isConfigured: isSupabaseConfigured
   };
 };
