@@ -5,7 +5,7 @@ const Footer = () => {
   return (
     <footer className="bg-gray-900 text-white py-16">
       <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-4 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
           <div className="col-span-2">
             <div className="flex items-center space-x-3 mb-4">
               <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
@@ -22,15 +22,6 @@ const Footer = () => {
                 Rated by 10,000+ users<br />
                 on Trustpilot & G2
               </div>
-            </div>
-          </div>
-          <div>
-            <h3 className="font-semibold mb-4">Product</h3>
-            <div className="space-y-2 text-gray-400">
-              <div>Features</div>
-              <div>Pricing</div>
-              <div>Success Stories</div>
-              <div>Enterprise</div>
             </div>
           </div>
           <div>

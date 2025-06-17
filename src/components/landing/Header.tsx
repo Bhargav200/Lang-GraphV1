@@ -20,11 +20,6 @@ const Header = () => {
               <p className="text-xs text-gray-500 hidden sm:block">AI-Powered Career Success</p>
             </div>
           </div>
-          <nav className="hidden md:flex items-center space-x-8">
-            <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Features</a>
-            <a href="#testimonials" className="text-gray-600 hover:text-gray-900 transition-colors">Success Stories</a>
-            <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
-          </nav>
           <div className="flex items-center space-x-4">
             <Link to="/auth">
               <Button variant="ghost" className="text-gray-600 hover:text-gray-900">
